@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinema Showcase</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cinzel:wght@400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Playfair Display', serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        /* Theater Stage Container */
+        .theater-stage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        /* Curtains */
+        .curtain {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100vh;
+            background: linear-gradient(90deg, #8B0000 0%, #DC143C 50%, #8B0000 100%);
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1001;
+        }
+        
+        .curtain::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 40px,
+                rgba(0, 0, 0, 0.1) 40px,
+                rgba(0, 0, 0, 0.1) 80px
+            );
+        }
+        
+        .curtain-left {
+            left: 0;
+            border-right: 3px solid #DAA520;
+            box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .curtain-right {
+            right: 0;
+            border-left: 3px solid #DAA520;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        body.curtains-open .curtain-left {
+            transform: translateX(-100%);
+        }
+        
+        body.curtains-open .curtain-right {
+            transform: translateX(100%);
+        }
+        
+        /* Curtain Swag */
+        .curtain-swag {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(180deg, #8B0000 0%, #DC143C 100%);
+            border-bottom: 5px solid #DAA520;
+            z-index: 1002;
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .curtain-swag::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 30px,
+                #DAA520 30px,
+                #DAA520 40px,
+                transparent 40px,
+                transparent 70px
+            );
+        }
+        
+        body.curtains-open .curtain-swag {
+            transform: translateY(-100%);
+        }
+        
+        /* Film Reels Container */
+        .film-reels {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0;
+            align-items: center;
+            z-index: 1003;
+            width: 90%;
+            max-width: 1200px;
+            min-width: 900px;
+            justify-content: space-between;
+        }
+        
+        body.curtains-open .film-reels {
+            top: 10px;
+        }
+        
+        .film-reel {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            flex-shrink: 0;
+            aspect-ratio: 1 / 1;
+        }
+        
+        .reel-outer {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #2a2a2a, #4a4a4a);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8),
+                        inset 0 -5px 10px rgba(0, 0, 0, 0.5),
+                        inset 0 5px 10px rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: rotate 8s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .reel-inner {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1a1a1a, #0a0a0a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .reel-center {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .reel-holes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .reel-hole {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #000;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .reel-hole:nth-child(1) { top: 5px; left: 50%; transform: translateX(-50%); }
+        .reel-hole:nth-child(2) { top: 50%; right: 5px; transform: translateY(-50%); }
+        .reel-hole:nth-child(3) { bottom: 5px; left: 50%; transform: translateX(-50%); }
+        .reel-hole:nth-child(4) { top: 50%; left: 5px; transform: translateY(-50%); }
+        
+        /* Navigation Arrows on Reels */
+        .reel-nav {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(218, 165, 32, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 20;
+            pointer-events: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .reel-nav:hover {
+            background: rgba(218, 165, 32, 1);
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+        
+        .reel-nav::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+        
+        .reel-nav.prev::after {
+            border-width: 10px 15px 10px 0;
+            border-color: transparent #000 transparent transparent;
+            margin-left: -3px;
+        }
+        
+        .reel-nav.next::after {
+            border-width: 10px 0 10px 15px;
+            border-color: transparent transparent transparent #000;
+            margin-right: -3px;
+        }
+        
+        /* Video Display Between Reels */
+        .video-display {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 15px;
+            margin: 0 20px;
+            pointer-events: auto;
+            overflow: hidden;
+            width: 650px;
+            position: relative;
+        }
+        
+        .film-frames-container {
+            display: flex;
+            gap: 15px;
+            transition: transform 0.5s ease;
+        }
+        
+        .film-frame {
+            flex-shrink: 0;
+            width: 140px;
+            height: 100px;
+            background: #2a2a2a;
+            border: 3px solid #555;
+            border-radius: 5px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6),
+                        inset 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .film-thumbnail {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+        }
+        
+        .film-frame:hover {
+            border-color: #888;
+        }
+        
+        .film-frame.active {
+            border-color: #DAA520;
+            box-shadow: 0 5px 20px rgba(218, 165, 32, 0.5),
+                        inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .film-frame::before,
+        .film-frame::after {
+            content: '';
+            position: absolute;
+            background: #1a1a1a;
+            border-radius: 2px;
+        }
+        
+        /* Film sprocket holes */
+        .film-frame::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            top: 5px;
+            left: 5px;
+            background: #1a1a1a;
+            border-radius: 2px;
+            z-index: 2;
+            box-shadow: 0 0 0 1px #000,
+                        0 82px 0 0 #1a1a1a,
+                        0 82px 0 1px #000,
+                        117px 0 0 0 #1a1a1a,
+                        117px 0 0 1px #000,
+                        117px 82px 0 0 #1a1a1a,
+                        117px 82px 0 1px #000;
+        }
+        
+        .video-screen {
+            display: none;
+        }
+        
+        .current-video-thumbnail {
+            display: none;
+        }
+        
+        .video-display-info {
+            display: none;
+        }
+        
+        .video-display-info h2 {
+            display: none;
+        }
+        
+        .video-display-info p {
+            display: none;
+        }
+        
+        .video-display-info .video-meta {
+            display: none;
+        }
+        
+        .video-counter {
+            text-align: center;
+            color: #DAA520;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333;
+        }
+        
+        .play-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(218, 165, 32, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+        
+        .play-button:hover {
+            background: rgba(218, 165, 32, 1);
+            transform: scale(1.1);
+        }
+        
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 12px 0 12px 20px;
+            border-color: transparent transparent transparent #000;
+            margin-left: 4px;
+        }
+        
+        .video-display-info {
+            padding: 20px;
+            background: linear-gradient(180deg, #1a1a1a, #0a0a0a);
+        }
+        
+        .video-display-info h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            color: #DAA520;
+            letter-spacing: 1px;
+        }
+        
+        .video-display-info p {
+            color: #aaa;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        
+        .video-display-info .video-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        /* Main Content */
+        .content {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding: 450px 50px 100px;
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .hero h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 4rem;
+            font-weight: 900;
+            letter-spacing: 8px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #DAA520, #FFD700, #DAA520);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(218, 165, 32, 0.3);
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            color: #ccc;
+            letter-spacing: 3px;
+        }
+        
+        /* Video Details Section */
+        .video-details {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+        }
+        
+        .video-player-container {
+            width: 100%;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .video-player-container iframe {
+            display: block;
+            border-radius: 10px;
+        }
+        
+        .video-details h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            color: #DAA520;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .video-details .description {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #ccc;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .credits-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border-left: 4px solid #DAA520;
+        }
+        
+        .credits-section h3 {
+            color: #DAA520;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            font-family: 'Cinzel', serif;
+        }
+        
+        .credits-content {
+            color: #aaa;
+            line-height: 2;
+            font-size: 1.2rem;
+        }
+        
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #DAA520;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            animation: bounce 2s infinite;
+            z-index: 999;
+            transition: opacity 0.5s ease;
+        }
+        
+        body.curtains-open .scroll-indicator {
+            opacity: 0;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateX(-50%) translateY(0);
+            }
+            40% {
+                transform: translateX(-50%) translateY(-20px);
+            }
+            60% {
+                transform: translateX(-50%) translateY(-10px);
+            }
+        }
+        
+        .scroll-indicator::after {
+            content: '↓';
+            display: block;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-top: 5px;
+        }
+        
+        /* Film Strip Decoration */
+        .film-strip {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: #000;
+            z-index: 999;
+            display: flex;
+            justify-content: space-evenly;
+            border-bottom: 2px solid #DAA520;
+        }
+        
+        .film-strip::before,
+        .film-strip::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                #333 10px,
+                #333 15px
+            );
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .film-reels {
+                min-width: 700px;
+            }
+            
+            .video-display {
+                width: 400px;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .film-reels {
+                flex-direction: column;
+                gap: 30px;
+                width: 95%;
+                min-width: auto;
+            }
+            
+            .video-display {
+                margin: 0;
+                order: 2;
+                width: 550px;
+            }
+            
+            .film-reel:first-child {
+                order: 1;
+            }
+            
+            .film-reel:last-child {
+                order: 3;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+                letter-spacing: 4px;
+            }
+            
+            .film-reel {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .reel-inner {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .video-display {
+                width: 400px;
+            }
+            
+            .film-frame {
+                width: 120px;
+                height: 85px;
+            }
+            
+            .content {
+                padding: 550px 20px 50px;
+            }
+            
+            .video-details {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Film Strip Decoration -->
+    <div class="film-strip"></div>
+    
+    <!-- Theater Stage with Curtains -->
+    <div class="theater-stage">
+        <div class="curtain curtain-left"></div>
+        <div class="curtain curtain-right"></div>
+        <div class="curtain-swag"></div>
+        
+        <!-- Film Reels with Navigation -->
+        <div class="film-reels">
+            <div class="film-reel">
+                <div class="reel-nav prev" onclick="previousVideo()"></div>
+                <div class="reel-outer">
+                    <div class="reel-inner">
+                        <div class="reel-center"></div>
+                        <div class="reel-holes">
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Video Display Between Reels -->
+            <div class="video-display">
+                <div class="film-frames-container" id="filmFramesContainer">
+                    <!-- Frames will be populated by JS -->
+                </div>
+            </div>
+            
+            <div class="film-reel">
+                <div class="reel-outer">
+                    <div class="reel-inner">
+                        <div class="reel-center"></div>
+                        <div class="reel-holes">
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                            <div class="reel-hole"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reel-nav next" onclick="nextVideo()"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator">SCROLL TO BEGIN</div>
+    
+    <!-- Main Content -->
+    <div class="content">
+        <div class="hero">
+            <h1>JESSE GARRATT</h1>
+            <p>WELLINGTON'S MAN OF ACTION</p>
+        </div>
+        
+        <div class="video-details" id="videoDetails">
+            <!-- Detailed content will be populated here -->
+        </div>
+    </div>
+    
+    <script>
+        // Video data with extended information
+        const videos = [
+            {
+                title: "Featured Video 1",
+                fullDescription: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                credits: "Director: TBA\nProducer: TBA\nCinematographer: TBA\nEditor: TBA",
+                thumbnail: "https://img.youtube.com/vi/RUFxq5uxetg/maxresdefault.jpg",
+                youtubeId: "RUFxq5uxetg"
+            },
+            {
+                title: "Featured Video 2",
+                fullDescription: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                credits: "Director: TBA\nProducer: TBA\nCinematographer: TBA\nEditor: TBA",
+                thumbnail: "https://img.youtube.com/vi/1xB0vgk1OUg/maxresdefault.jpg",
+                youtubeId: "1xB0vgk1OUg"
+            },
+            {
+                title: "Featured Video 3",
+                fullDescription: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+                credits: "Director: TBA\nProducer: TBA\nCinematographer: TBA\nEditor: TBA",
+                thumbnail: "https://img.youtube.com/vi/-9mAowesyFQ/maxresdefault.jpg",
+                youtubeId: "-9mAowesyFQ"
+            }
+        ];
+        
+        let currentVideoIndex = 0;
+        const visibleFrames = 3; // Show 3 frames at a time
+        
+        // Create film frames with infinite loop
+        function createFilmFrames() {
+            const container = document.getElementById('filmFramesContainer');
+            container.innerHTML = '';
+            
+            // Create triple the videos for seamless looping
+            const totalFrames = videos.length * 3;
+            for (let i = 0; i < totalFrames; i++) {
+                const videoIndex = i % videos.length;
+                const video = videos[videoIndex];
+                const frame = document.createElement('div');
+                frame.className = 'film-frame';
+                frame.dataset.index = videoIndex;
+                frame.dataset.actualIndex = i;
+                
+                // Add thumbnail as background
+                const thumbnail = document.createElement('div');
+                thumbnail.className = 'film-thumbnail';
+                thumbnail.style.backgroundImage = `url('${video.thumbnail}')`;
+                frame.appendChild(thumbnail);
+                
+                if (videoIndex === currentVideoIndex && i >= videos.length && i < videos.length * 2) {
+                    frame.classList.add('active');
+                }
+                
+                frame.addEventListener('click', () => {
+                    currentVideoIndex = videoIndex;
+                    updateFilmFrames();
+                });
+                
+                container.appendChild(frame);
+            }
+            
+            // Center on middle set
+            updateScrollPosition(false);
+        }
+        
+        // Update scroll position
+        function updateScrollPosition(animate = true) {
+            const container = document.getElementById('filmFramesContainer');
+            const frameWidth = 140 + 15; // width + gap
+            const offset = (videos.length + currentVideoIndex) * frameWidth;
+            const centerOffset = (650 - 140) / 2; // Center the active frame in wider display
+            
+            if (animate) {
+                container.style.transition = 'transform 0.5s ease';
+            } else {
+                container.style.transition = 'none';
+            }
+            
+            container.style.transform = `translateX(-${offset - centerOffset}px)`;
+        }
+        
+        // Update film frames to show active border on current video
+        function updateFilmFrames() {
+            const frames = document.querySelectorAll('.film-frame');
+            frames.forEach((frame) => {
+                const videoIndex = parseInt(frame.dataset.index);
+                frame.classList.toggle('active', videoIndex === currentVideoIndex);
+            });
+            
+            updateScrollPosition(true);
+            updateDetailedContent();
+        }
+        
+        // Update the detailed content section
+        function updateDetailedContent() {
+            const video = videos[currentVideoIndex];
+            const detailsHTML = `
+                <div class="video-player-container">
+                    <iframe 
+                        width="100%" 
+                        height="500" 
+                        src="https://www.youtube.com/embed/${video.youtubeId}" 
+                        title="${video.title}"
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <h2>${video.title}</h2>
+                <div class="description">${video.fullDescription}</div>
+                <div class="credits-section">
+                    <h3>Credits</h3>
+                    <div class="credits-content">${video.credits.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+            document.getElementById('videoDetails').innerHTML = detailsHTML;
+        }
+        
+        // Navigate to previous video
+        function previousVideo() {
+            currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+            updateFilmFrames();
+        }
+        
+        // Navigate to next video
+        function nextVideo() {
+            currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+            updateFilmFrames();
+        }
+        
+        // Play current video
+        function playCurrentVideo() {
+            const video = videos[currentVideoIndex];
+            alert(`Now Playing: ${video.title}\n\nThis is a demo. In a real implementation, the video would start playing here.`);
+        }
+        
+        // Handle scroll to open curtains
+        let hasScrolled = false;
+        window.addEventListener('scroll', () => {
+            if (!hasScrolled && window.scrollY > 50) {
+                hasScrolled = true;
+                document.body.classList.add('curtains-open');
+            }
+        });
+        
+        // Add keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                previousVideo();
+            } else if (e.key === 'ArrowRight') {
+                nextVideo();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                playCurrentVideo();
+            }
+        });
+        
+        // Initialize
+        createFilmFrames();
+        updateDetailedContent();
+    </script>
+</body>
+</html>
